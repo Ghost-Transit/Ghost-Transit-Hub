@@ -1,57 +1,70 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "🕵️ GHOST HUB | RARE PRECISION",
-    LoadingTitle = "Initializing Stealth Bypass...",
+    Name = "🕵️ GHOST HUB | RARE PRECISION v3",
+    LoadingTitle = "Securing Live Data...",
     ConfigurationSaving = { Enabled = false }
 })
 
 local MainTab = Window:CreateTab("Rare Hunter", 4483362458)
 
 local targetPlayerName = ""
-local playerList = {}
-
-local VirtualUser = game:GetService("VirtualUser")
-game.Players.LocalPlayer.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-end)
+local currentButtons = {}
 
 local PlayerDropdown = MainTab:CreateDropdown({
     Name = "1. Select Target Player",
-    Options = {"Refresh List First"},
+    Options = {"Refresh List to Start"},
     CurrentOption = {"Select Player"},
     Callback = function(Option)
         targetPlayerName = Option[1]
-        Rayfield:Notify({Title = "Target Locked", Content = "Ready na i-scan ang base ni " .. targetPlayerName})
     end,
 })
 
 MainTab:CreateButton({
-    Name = "🔄 Refresh Player List",
+    Name = "🔄 Refresh Player List (ACCURATE)",
     Callback = function()
-        playerList = {}
-        for _, p in pairs(game.Players:GetPlayers()) do
-            if p ~= game.Players.LocalPlayer then table.insert(playerList, p.Name) end
+        local activePlayers = {}
+        for _, p in pairs(game:GetService("Players"):GetPlayers()) do
+            if p ~= game.Players.LocalPlayer then 
+                table.insert(activePlayers, p.Name) 
+            end
         end
-        PlayerDropdown:Refresh(playerList, true)
+        PlayerDropdown:Refresh(activePlayers, true)
+        Rayfield:Notify({Title = "Sync Success", Content = "Live players only."})
     end,
 })
 
-MainTab:CreateSection("Target's Rare Brainrots")
+local ItemSection = MainTab:CreateSection("Target's Rare Brainrots")
 
 MainTab:CreateButton({
-    Name = "🔍 Scan & Show Rare Items",
+    Name = "🔍 Scan & List Accurate Items",
     Callback = function()
-        if targetPlayerName == "" then return end
+        if #currentButtons > 0 then
+            for _, btn in pairs(currentButtons) do
+                btn:Destroy()
+            end
+            currentButtons = {}
+        end
+
+        if targetPlayerName == "" or not game.Players:FindFirstChild(targetPlayerName) then 
+            Rayfield:Notify({Title = "Error", Content = "Target not in server!"})
+            return 
+        end
         
         local targetBase = workspace.Plots:FindFirstChild(targetPlayerName)
         if targetBase and targetBase:FindFirstChild("Drops") then
-            for _, item in pairs(targetBase.Drops:GetChildren()) do
+            local foundItems = targetBase.Drops:GetChildren()
+            
+            if #foundItems == 0 then
+                Rayfield:Notify({Title = "Empty", Content = "No items found in base."})
+                return
+            end
+
+            for _, item in pairs(foundItems) do
                 local mutation = item:GetAttribute("Mutation") or "Normal"
                 local trait = item:GetAttribute("Trait") or "None"
                 
-                MainTab:CreateButton({
+                local b = MainTab:CreateButton({
                     Name = "GET: " .. item.Name .. " [" .. mutation .. " | " .. trait .. "]",
                     Callback = function()
                         local myBase = workspace.Plots:FindFirstChild(game.Players.LocalPlayer.Name)
@@ -65,13 +78,13 @@ MainTab:CreateButton({
                             item.CFrame = CFrame.new(targetPos) 
                         end
                         
-                        Rayfield:Notify({Title = "SUCCESS!", Content = "Nakuha na ang Rare!"})
-                        
                         task.wait(0.3)
                         game:Shutdown()
                     end,
                 })
+                table.insert(currentButtons, b)
             end
+            Rayfield:Notify({Title = "Scan Complete", Content = "Found " .. #foundItems .. " items."})
         end
     end,
 })
